@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>实时工资展示</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#8B5CF6',
+            secondary: '#FBBF24',
+            accent: '#EC4899',
+            dark: '#1E293B',
+            light: '#F8FAFC',
+            mint: '#34D399',
+            lavender: '#C084FC',
+            gold: '#FBBF24',
+            goldDark: '#D97706',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .text-shadow-lg {
+        text-shadow: 0 4px 8px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+      }
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+      .animate-pulse-slow {
+        animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .animate-number {
+        transition: all 0.3s ease-out;
+      }
+      .bg-gradient-primary {
+        background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+      }
+      .glass-effect {
+        backdrop-filter: blur(10px);
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      .text-glow {
+        text-shadow: 0 0 10px rgba(245, 158, 11, 0.7), 0 0 20px rgba(245, 158, 11, 0.5), 0 0 30px rgba(245, 158, 11, 0.3);
+      }
+      .gold-particle {
+        position: absolute;
+        top: -50px;
+        opacity: 0;
+        animation: fall 3s linear forwards;
+      }
+      .animate-explode {
+        animation: explode 0.5s ease-out;
+      }
+      .pulse-ring {
+        box-shadow: 0 0 0 rgba(245, 158, 11, 0.4);
+        animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      }
+      .bg-blur {
+        backdrop-filter: blur(8px);
+      }
+      .scale-up-center {
+        animation: scale-up-center 0.4s cubic-bezier(0.39, 0.575, 0.565, 1) both;
+      }
+      .money-morph {
+        background: linear-gradient(45deg, #FBBF24, #F59E0B, #D97706, #FBBF24);
+        background-size: 200% 200%;
+        animation: moneyMorph 3s ease infinite;
+      }
+      .gold-gradient {
+        background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+      }
+      .gold-text {
+        background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    @keyframes fall {
+      0% {
+        top: -50px;
+        opacity: 0.9;
+        transform: rotate(0deg) scale(0.8);
+      }
+      100% {
+        top: 100%;
+        opacity: 0;
+        transform: rotate(360deg) scale(0.8);
+      }
+    }
+    
+    @keyframes explode {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes pulse-ring {
+      0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 20px rgba(245, 158, 11, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+      }
+    }
+    
+    @keyframes scale-up-center {
+      0% { transform: scale(0.95); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes moneyMorph {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-lavender/10 to-mint/10 text-dark min-h-screen flex flex-col">
+  <!-- 导航栏 -->
+  <nav class="glass-effect border-b border-white/20 sticky top-0 z-50 bg-white/10">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="text-2xl font-bold gold-text">
+        <i class="fa-solid fa-coins mr-2"></i>实时工资展示
+      </h1>
+      <div class="flex items-center space-x-4">
+        <button id="themeToggle" class="p-2 rounded-full hover:bg-white/20 transition-all">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button id="helpBtn" class="p-2 rounded-full hover:bg-white/20 transition-all">
+          <i class="fa-solid fa-question"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主要内容区域 -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <!-- 第一页：工资输入 -->
+    <section id="page1" class="flex flex-col items-center justify-center min-h-[80vh]">
+      <div class="relative w-full max-w-3xl">
+        <!-- 牛马动画背景 -->
+        <div class="absolute -top-16 -left-16 w-64 h-64 opacity-10 animate-float">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#8B5CF6" d="M42.8,-69.3C56.3,-61.6,67.8,-48.8,74.6,-33.6C81.4,-18.4,83.6,-1.1,80.4,15.6C77.2,32.3,68.5,48.5,56.7,57.8C44.9,67.1,29.9,69.4,14.7,72.3C-0.5,75.3,-15.7,78.8,-29.9,76.4C-44.1,74,-57.3,65.8,-67.4,53.7C-77.5,41.6,-84.4,25.6,-85.4,9.4C-86.4,-6.8,-81.5,-23.6,-72.7,-35.4C-63.9,-47.2,-51.3,-54,-38.1,-60.3C-24.9,-66.6,-12.4,-72.3,0.4,-75.6C13.2,-78.9,26.5,-79.8,42.8,-69.3Z" transform="translate(100 100)" />
+          </svg>
+        </div>
+        
+        <div class="relative bg-white/20 rounded-2xl p-8 shadow-xl border border-white/30 backdrop-blur-md">
+          <div class="text-center mb-10">
+            <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-bold mb-4 text-shadow-lg text-primary">
+              你的时间<span class="text-secondary">价值</span>几何？
+            </h2>
+            <p class="text-gray-600 text-lg max-w-2xl mx-auto">
+              输入你的税前月工资，看看每一秒你能创造多少财富
+            </p>
+          </div>
+          
+          <div class="mb-8">
+            <label for="monthlySalary" class="block text-lg font-medium mb-2 text-gray-700">税前月工资 (元)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
+              <input 
+                type="number" 
+                id="monthlySalary" 
+                placeholder="输入你的月薪" 
+                class="w-full bg-white/30 border border-white/40 rounded-lg py-4 px-10 text-2xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-gray-800"
+              >
+            </div>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row gap-4">
+            <button 
+              id="calculateBtn" 
+              class="bg-gradient-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/20 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:-translate-y-1 hover:scale-105 text-lg flex-1 flex items-center justify-center"
+            >
+              <i class="fa-solid fa-calculator mr-2"></i>
+              开始计算
+            </button>
+            <button 
+              id="resetBtn" 
+              class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-4 px-6 rounded-lg transition-all flex-1 flex items-center justify-center"
+            >
+              <i class="fa-solid fa-refresh mr-2"></i>
+              重置
+            </button>
+          </div>
+          
+          <!-- 工资计算说明 -->
+          <div class="mt-8 bg-white/20 rounded-lg p-4 border border-white/30">
+            <h3 class="text-lg font-medium text-gray-700 mb-2 flex items-center">
+              <i class="fa-solid fa-info-circle text-primary mr-2"></i>
+              计算说明
+            </h3>
+            <p class="text-gray-600 text-sm">
+              每秒钟工资 = 月工资 ÷ (21.75天 × 8小时 × 3600秒)
+              <br>
+              <span class="text-xs text-gray-500">注：21.75天为法定月计薪天数</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 第二页：实时工资展示 -->
+    <section id="page2" class="hidden flex flex-col items-center justify-center min-h-[80vh]">
+      <div class="w-full max-w-6xl relative">
+        <!-- 金币飘落容器 -->
+        <div id="goldContainer" class="absolute inset-0 overflow-hidden pointer-events-none z-0"></div>
+        
+        <div class="bg-white/20 rounded-2xl p-8 shadow-2xl border border-white/30 backdrop-blur-md relative z-10">
+          <!-- 背景装饰 -->
+          <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl"></div>
+          <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/5 rounded-full blur-3xl"></div>
+          
+          <div class="text-center mb-8 relative z-10">
+            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold mb-4 text-shadow text-primary">
+              <i class="fa-solid fa-bolt text-secondary animate-pulse-slow"></i>
+              每一秒都在创造价值
+            </h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+              你正在以惊人的速度积累财富，看看你现在赚了多少
+            </p>
+          </div>
+          
+          <!-- 实时工资显示 - 更加突出 -->
+          <div class="grid grid-cols-1 gap-6 mb-8 relative z-10">
+            <!-- 突出显示当前已赚 -->
+            <div class="money-morph rounded-3xl p-8 shadow-2xl shadow-gold/30 relative overflow-hidden pulse-ring border-4 border-gold/50">
+              <div class="absolute inset-0 bg-[url('https://picsum.photos/id/1048/1000/1000')] opacity-5 bg-cover bg-center"></div>
+              
+              <!-- 装饰性金币元素 -->
+              <div class="absolute -top-10 -left-10 w-32 h-32 opacity-20">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="100" cy="100" r="80" fill="#FBBF24" opacity="0.5"/>
+                  <circle cx="100" cy="100" r="60" fill="#D97706" opacity="0.5"/>
+                  <circle cx="100" cy="100" r="40" fill="#FBBF24" opacity="0.5"/>
+                </svg>
+              </div>
+              <div class="absolute -bottom-10 -right-10 w-32 h-32 opacity-20">
+                <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="100" cy="100" r="80" fill="#FBBF24" opacity="0.5"/>
+                  <circle cx="100" cy="100" r="60" fill="#D97706" opacity="0.5"/>
+                  <circle cx="100" cy="100" r="40" fill="#FBBF24" opacity="0.5"/>
+                </svg>
+              </div>
+              
+              <div class="relative z-10">
+                <h3 class="text-[clamp(1.5rem,3vw,2rem)] font-bold mb-3 text-center text-white text-shadow-lg">
+                  当前已赚
+                </h3>
+                <div class="flex items-center justify-center">
+                  <span id="currentEarnings" class="text-[clamp(4rem,10vw,7rem)] font-black text-white text-glow">0.00</span>
+                  <span class="text-[clamp(1.5rem,3vw,2.5rem)] text-white ml-3">元</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 每秒工资 -->
+            <div class="bg-white/30 rounded-xl p-6 border border-white/40 shadow-lg transform transition-all hover:shadow-primary/20 hover:-translate-y-1">
+              <h3 class="text-gray-700 text-xl mb-2">每秒钟工资</h3>
+              <div class="flex items-end">
+                <span id="perSecondSalary" class="text-[clamp(2.5rem,6vw,4rem)] font-bold gold-text">0.00</span>
+                <span class="text-gray-600 ml-2 mb-2 text-xl">元/秒</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 进度条 -->
+          <div class="mb-8 relative z-10">
+            <div class="flex justify-between mb-2">
+              <span class="text-gray-700 text-lg">本月目标：</span>
+              <span id="targetAmount" class="font-bold text-xl gold-text">0.00 元</span>
+            </div>
+            <div class="h-6 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+              <div id="progressBar" class="h-full gold-gradient relative scale-up-center">
+                <div class="absolute right-0 top-1/2 -translate-y-1/2 -translate-x-1/2 text-xs font-medium text-white bg-goldDark px-2 py-1 rounded">
+                  <span id="progressPercent">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 统计卡片 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 relative z-10">
+            <div class="bg-white/30 rounded-xl p-6 border border-white/40 shadow-lg transform transition-all hover:shadow-primary/20 hover:-translate-y-1">
+              <p class="text-gray-600 text-lg mb-1">每分钟</p>
+              <p id="perMinute" class="text-2xl font-bold text-gray-800">0.00</p>
+              <p class="text-gray-500 text-sm">元</p>
+            </div>
+            <div class="bg-white/30 rounded-xl p-6 border border-white/40 shadow-lg transform transition-all hover:shadow-primary/20 hover:-translate-y-1">
+              <p class="text-gray-600 text-lg mb-1">每小时</p>
+              <p id="perHour" class="text-2xl font-bold text-gray-800">0.00</p>
+              <p class="text-gray-500 text-sm">元</p>
+            </div>
+            <div class="bg-white/30 rounded-xl p-6 border border-white/40 shadow-lg transform transition-all hover:shadow-primary/20 hover:-translate-y-1">
+              <p class="text-gray-600 text-lg mb-1">每天</p>
+              <p id="perDay" class="text-2xl font-bold text-gray-800">0.00</p>
+              <p class="text-gray-500 text-sm">元</p>
+            </div>
+            <div class="bg-white/30 rounded-xl p-6 border border-white/40 shadow-lg transform transition-all hover:shadow-primary/20 hover:-translate-y-1">
+              <p class="text-gray-600 text-lg mb-1">每月</p>
+              <p id="perMonth" class="text-2xl font-bold text-gray-800">0.00</p>
+              <p class="text-gray-500 text-sm">元</p>
+            </div>
+          </div>
+          
+          <!-- 按钮区域 -->
+          <div class="flex flex-col sm:flex-row gap-4 relative z-10">
+            <button 
+              id="restartBtn" 
+              class="bg-white/40 hover:bg-white/50 text-gray-800 font-bold py-4 px-8 rounded-lg transition-all transform hover:-translate-y-1 hover:scale-105 flex-1 flex items-center justify-center border border-white/50"
+            >
+              <i class="fa-solid fa-undo mr-2"></i>
+              返回重新输入
+            </button>
+            <button 
+              id="shareBtn" 
+              class="gold-gradient hover:shadow-lg hover:shadow-gold/30 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:-translate-y-1 hover:scale-105 flex-1 flex items-center justify-center"
+            >
+              <i class="fa-solid fa-share-alt mr-2"></i>
+              分享成果
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="glass-effect border-t border-white/20 py-4 bg-white/10">
+    <div class="container mx-auto px-4 text-center text-gray-600 text-sm">
+      <p>© 2025 实时工资展示计算器 | 让每一秒都有价值</p>
+    </div>
+  </footer>
+
+  <!-- 分享模态框 -->
+  <div id="shareModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden">
+    <div class="bg-white/90 rounded-2xl p-6 max-w-md w-full mx-4 border border-white/5 shadow-2xl transform transition-all backdrop-blur-md">
+      <div class="text-center mb-6">
+        <h3 class="text-2xl font-bold mb-2 text-gray-800">分享你的成果</h3>
+        <p class="text-gray-600">复制链接或分享到社交媒体</p>
+      </div>
+      
+      <div class="mb-6">
+        <div class="relative">
+          <input 
+            type="text" 
+            id="shareUrl" 
+            value="https://example.com/salary?amount=10000" 
+            class="w-full bg-white/70 border border-gray-300 rounded-lg py-3 px-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
+            readonly
+          >
+          <button 
+            id="copyBtn" 
+            class="absolute right-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-primary/80 text-white px-3 py-1 rounded transition-all"
+          >
+            复制
+          </button>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        <button class="bg-[#1DA1F2] hover:bg-[#1DA1F2]/80 p-3 rounded-lg transition-all">
+          <i class="fa-brands fa-twitter text-white text-xl"></i>
+        </button>
+        <button class="bg-[#1877F2] hover:bg-[#1877F2]/80 p-3 rounded-lg transition-all">
+          <i class="fa-brands fa-facebook text-white text-xl"></i>
+        </button>
+        <button class="bg-[#25D366] hover:bg-[#25D366]/80 p-3 rounded-lg transition-all">
+          <i class="fa-brands fa-whatsapp text-white text-xl"></i>
+        </button>
+        <button class="bg-[#0A66C2] hover:bg-[#0A66C2]/80 p-3 rounded-lg transition-all">
+          <i class="fa-brands fa-linkedin text-white text-xl"></i>
+        </button>
+      </div>
+      
+      <button 
+        id="closeShareModal" 
+        class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-all"
+      >
+        关闭
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 页面元素
+    const page1 = document.getElementById('page1');
+    const page2 = document.getElementById('page2');
+    const monthlySalaryInput = document.getElementById('monthlySalary');
+    const calculateBtn = document.getElementById('calculateBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const shareModal = document.getElementById('shareModal');
+    const closeShareModal = document.getElementById('closeShareModal');
+    const copyBtn = document.getElementById('copyBtn');
+    const shareUrl = document.getElementById('shareUrl');
+    const themeToggle = document.getElementById('themeToggle');
+    const goldContainer = document.getElementById('goldContainer');
+    
+    // 工资显示元素
+    const perSecondSalaryEl = document.getElementById('perSecondSalary');
+    const currentEarningsEl = document.getElementById('currentEarnings');
+    const perMinuteEl = document.getElementById('perMinute');
+    const perHourEl = document.getElementById('perHour');
+    const perDayEl = document.getElementById('perDay');
+    const perMonthEl = document.getElementById('perMonth');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const targetAmountEl = document.getElementById('targetAmount');
+    
+    // 计时器变量
+    let perSecondSalary = 0;
+    let currentEarnings = 0;
+    let timer = null;
+    let startTime = null;
+    let targetAmount = 0;
+    let goldTimer = null;
+    
+    // 切换页面
+    function showPage1() {
+      page1.classList.remove('hidden');
+      page2.classList.add('hidden');
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      if (goldTimer) {
+        clearInterval(goldTimer);
+        goldTimer = null;
+        // 清空金币元素
+        goldContainer.innerHTML = '';
+      }
+    }
+    
+    function showPage2() {
+      page1.classList.add('hidden');
+      page2.classList.remove('hidden');
+      
+      // 获取月薪并计算每秒工资
+      const monthlySalary = parseFloat(monthlySalaryInput.value);
+      if (isNaN(monthlySalary) || monthlySalary <= 0) {
+        alert('请输入有效的月工资！');
+        showPage1();
+        return;
+      }
+      
+      // 计算每秒工资 (月薪 ÷ (21.75天 × 8小时 × 3600秒))
+      perSecondSalary = monthlySalary / (21.75 * 8 * 3600);
+      targetAmount = monthlySalary;
+      
+      // 更新显示
+      perSecondSalaryEl.textContent = perSecondSalary.toFixed(2);
+      perMinuteEl.textContent = (perSecondSalary * 60).toFixed(2);
+      perHourEl.textContent = (perSecondSalary * 3600).toFixed(2);
+      perDayEl.textContent = (perSecondSalary * 3600 * 8).toFixed(2);
+      perMonthEl.textContent = monthlySalary.toFixed(2);
+      targetAmountEl.textContent = monthlySalary.toFixed(2);
+      
+      // 重置当前收益
+      currentEarnings = 0;
+      currentEarningsEl.textContent = currentEarnings.toFixed(2);
+      progressBar.style.width = '0%';
+      progressPercent.textContent = '0%';
+      
+      // 更新分享链接
+      shareUrl.value = `${window.location.origin}?amount=${monthlySalary}`;
+      
+      // 开始计时器
+      startTime = new Date();
+      if (timer) clearInterval(timer);
+      timer = setInterval(updateEarnings, 100); // 每100毫秒更新一次
+      
+      // 开始金币飘落动画
+      startGoldFall();
+    }
+    
+    // 更新收益
+    function updateEarnings() {
+      const now = new Date();
+      const elapsedSeconds = (now - startTime) / 1000;
+      const newEarnings = elapsedSeconds * perSecondSalary;
+      
+      // 只有当收益变化足够明显时才更新显示
+      if (Math.abs(newEarnings - currentEarnings) >= 0.01) {
+        currentEarnings = newEarnings;
+        
+        // 添加爆炸动画效果
+        currentEarningsEl.classList.add('animate-explode');
+        setTimeout(() => {
+          currentEarningsEl.classList.remove('animate-explode');
+        }, 500);
+        
+        // 更新显示
+        currentEarningsEl.textContent = currentEarnings.toFixed(2);
+        
+        // 更新进度条
+        const progress = Math.min((currentEarnings / targetAmount) * 100, 100);
+        progressBar.style.width = `${progress}%`;
+        progressPercent.textContent = `${progress.toFixed(1)}%`;
+        
+        // 收益每增加10元，添加更多金币
+        if (Math.floor(currentEarnings / 10) > Math.floor((currentEarnings - (perSecondSalary * 0.1)) / 10)) {
+          createExtraGold();
+        }
+      }
+    }
+    
+    // 创建金币元素
+    function createGold() {
+      const gold = document.createElement('div');
+      gold.className = 'gold-particle';
+      
+      // 随机大小和旋转角度
+      const size = Math.floor(Math.random() * 30) + 20;
+      const rotation = Math.floor(Math.random() * 360);
+      
+      // 创建金币SVG
+      gold.innerHTML = `
+        <svg width="${size}px" height="${size}px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="#FBBF24" stroke="#D97706" stroke-width="2"/>
+          <path d="M12 6V18M6 12H18" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="3" fill="#D97706"/>
+        </svg>
+      `;
+      
+      gold.style.left = `${Math.random() * 100}%`;
+      gold.style.animationDuration = `${Math.random() * 2 + 3}s`;
+      gold.style.transform = `rotate(${rotation}deg)`;
+      
+      goldContainer.appendChild(gold);
+      
+      // 动画结束后移除元素
+      setTimeout(() => {
+        gold.remove();
+      }, 5000);
+    }
+    
+    // 创建额外的金币（当收益增加时）
+    function createExtraGold() {
+      // 一次性创建8-15个金币
+      const count = Math.floor(Math.random() * 8) + 8;
+      for (let i = 0; i < count; i++) {
+        setTimeout(createGold, i * 100);
+      }
+    }
+    
+    // 开始金币飘落动画
+    function startGoldFall() {
+      if (goldTimer) clearInterval(goldTimer);
+      goldTimer = setInterval(createGold, 300); // 每300毫秒创建一个金币
+      
+      // 初始时创建一批金币
+      for (let i = 0; i < 15; i++) {
+        setTimeout(createGold, i * 100);
+      }
+    }
+    
+    // 复制到剪贴板
+    function copyToClipboard() {
+      shareUrl.select();
+      document.execCommand('copy');
+      
+      // 显示复制成功提示
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = '已复制！';
+      copyBtn.classList.add('bg-green-600');
+      
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.classList.remove('bg-green-600');
+      }, 2000);
+    }
+    
+    // 事件监听器
+    calculateBtn.addEventListener('click', showPage2);
+    resetBtn.addEventListener('click', () => {
+      monthlySalaryInput.value = '';
+    });
+    restartBtn.addEventListener('click', showPage1);
+    shareBtn.addEventListener('click', () => {
+      shareModal.classList.remove('hidden');
+    });
+    closeShareModal.addEventListener('click', () => {
+      shareModal.classList.add('hidden');
+    });
+    copyBtn.addEventListener('click', copyToClipboard);
+    
+    // 主题切换
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      const icon = themeToggle.querySelector('i');
+      if (icon.classList.contains('fa-moon')) {
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+      } else {
+        icon.classList.remove('fa-sun');
+        icon.classList.add('fa-moon');
+      }
+    });
+    
+    // 处理URL参数
+    function handleUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const amount = params.get('amount');
+      
+      if (amount) {
+        monthlySalaryInput.value = amount;
+        showPage2();
+      }
+    }
+    
+    // 页面加载时处理参数
+    window.addEventListener('DOMContentLoaded', handleUrlParams);
+    
+    // 平滑滚动
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        
+        const targetElement = document.querySelector(targetId);
+        if (targetElement) {
+          targetElement.scrollIntoView({
+            behavior: 'smooth'
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+    
